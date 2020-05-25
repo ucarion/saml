@@ -12,6 +12,8 @@ github.com/ucarion/c14n v0.0.0-20200517181125-5606733c75e4 h1:ahloMLX9hsERw8SYOC
 github.com/ucarion/c14n v0.0.0-20200517181125-5606733c75e4/go.mod h1:Nqoq+dRn2UgVIejUGiBioSecH/PbJpTghkw4jM50zoM=
 github.com/ucarion/c14n v0.0.0-20200519225922-e60ebdf6c235 h1:EdvmB/B0tQRMm0POh2qXk9vQdRRk+IioeLP2UjivTT8=
 github.com/ucarion/c14n v0.0.0-20200519225922-e60ebdf6c235/go.mod h1:Nqoq+dRn2UgVIejUGiBioSecH/PbJpTghkw4jM50zoM=
+github.com/ucarion/c14n v0.0.0-20200524232814-fd60356503d0 h1:7yZCz2G3eObuEtlU95gcZVfcSZDk+hz/rCdR+5d5Dhw=
+github.com/ucarion/c14n v0.0.0-20200524232814-fd60356503d0/go.mod h1:Nqoq+dRn2UgVIejUGiBioSecH/PbJpTghkw4jM50zoM=
 github.com/ucarion/dsig v0.0.0-20200517210356-612d57e3d696 h1:9dHpdkxmCKgybKYGEAAkqaIla5WvkPIgWgQI4Nboflg=
 github.com/ucarion/dsig v0.0.0-20200517210356-612d57e3d696/go.mod h1:izgPMcETCs8FAn/XBjT8w86s4NbvVmWJU7BR/EK/+Iw=
 github.com/ucarion/dsig v0.0.0-20200517224103-749f4cab9770 h1:U/jCd1hSbnuIUjGSAmrsILcrGwszjyVZKd7GtnudVVM=
@@ -20,6 +22,8 @@ github.com/ucarion/dsig v0.0.0-20200522015258-b2ffcf2a3e82 h1:zaP5sGbq8/O4IcnB3w
 github.com/ucarion/dsig v0.0.0-20200522015258-b2ffcf2a3e82/go.mod h1:g+f69EMis9zqmcHEv7kvbftIF/rWPeKyhj0Rji//pFs=
 github.com/ucarion/dsig v0.0.0-20200524014038-c0c658ba45f1 h1:JXRmedxFxjYKRK+tGwdBoz0bbpIGJ1sQq1ppdTq7Wbc=
 github.com/ucarion/dsig v0.0.0-20200524014038-c0c658ba45f1/go.mod h1:g+f69EMis9zqmcHEv7kvbftIF/rWPeKyhj0Rji//pFs=
+github.com/ucarion/dsig v0.0.0-20200524235631-443c7c9d829d h1:O8SVKrwQvFZA8TqwBVE9+pZZFFAnBV/xtM4lu4fuh+U=
+github.com/ucarion/dsig v0.0.0-20200524235631-443c7c9d829d/go.mod h1:7W4Wt0P6XiOg0XtlViL961Dqu292Hie9i+XXuI4y4Tg=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20200506145744-7e3656a0809f/go.mod h1:qpuaurCH72eLCgpAm/N6yyVIVM9cpaDIP3A8BGJEC5A=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=

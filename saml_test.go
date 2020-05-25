@@ -3,6 +3,7 @@ package saml_test
 import (
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/pem"
 	"encoding/xml"
@@ -220,6 +221,16 @@ A70UwPLAvWk5vX1IMpaEFjBd3LqWLeSmbKZ03zr1jnA=
 	}
 }
 
+func TestVerify_InvalidBase64(t *testing.T) {
+	_, err := saml.Verify("NOT BASE64", "", nil, "", time.Now())
+	assert.Equal(t, base64.CorruptInputError(3), err)
+}
+
+func TestVerify_InvalidXML(t *testing.T) {
+	_, err := saml.Verify(base64.StdEncoding.EncodeToString([]byte("<foo")), "", nil, "", time.Now())
+	assert.Equal(t, &xml.SyntaxError{Msg: "unexpected EOF", Line: 1}, err)
+}
+
 func TestGetEntityIDCertificateAndRedirectURL(t *testing.T) {
 	block, _ := pem.Decode([]byte(`-----BEGIN CERTIFICATE-----
 MIIFXDCCA0QCCQCl4WZtbTlavDANBgkqhkiG9w0BAQsFADBwMQswCQYDVQQGEwJV
@@ -262,11 +273,94 @@ A70UwPLAvWk5vX1IMpaEFjBd3LqWLeSmbKZ03zr1jnA=
 	var metadata saml.EntityDescriptor
 	assert.NoError(t, xml.Unmarshal(b, &metadata))
 
-	fmt.Println(metadata)
-
 	entityID, cert, location, err := metadata.GetEntityIDCertificateAndRedirectURL()
 	assert.NoError(t, err)
 	assert.Equal(t, "https://example.com", entityID)
 	assert.True(t, expectedCert.Equal(cert))
 	assert.Equal(t, "https://example.com/saml/redirect", location.String())
+}
+func TestGetEntityIDCertificateAndRedirectURL_InvalidBase64(t *testing.T) {
+	metadata := saml.EntityDescriptor{
+		IDPSSODescriptor: saml.IDPSSODescriptor{
+			KeyDescriptor: saml.KeyDescriptor{
+				KeyInfo: saml.KeyInfo{
+					X509Data: saml.X509Data{
+						X509Certificate: saml.X509Certificate{
+							Value: "NOT BASE64",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, _, _, err := metadata.GetEntityIDCertificateAndRedirectURL()
+	assert.Equal(t, base64.CorruptInputError(3), err)
+}
+
+func TestGetEntityIDCertificateAndRedirectURL_InvalidX509(t *testing.T) {
+	metadata := saml.EntityDescriptor{
+		IDPSSODescriptor: saml.IDPSSODescriptor{
+			KeyDescriptor: saml.KeyDescriptor{
+				KeyInfo: saml.KeyInfo{
+					X509Data: saml.X509Data{
+						X509Certificate: saml.X509Certificate{
+							// echo 'not x509' | base64
+							Value: "bm90IHg1MDkK",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, _, _, err := metadata.GetEntityIDCertificateAndRedirectURL()
+	assert.IsType(t, asn1.StructuralError{}, err)
+}
+
+func TestGetEntityIDCertificateAndRedirectURL_NoRedirectBinding(t *testing.T) {
+	metadata := saml.EntityDescriptor{
+		IDPSSODescriptor: saml.IDPSSODescriptor{
+			KeyDescriptor: saml.KeyDescriptor{
+				KeyInfo: saml.KeyInfo{
+					X509Data: saml.X509Data{
+						X509Certificate: saml.X509Certificate{
+							Value: `MIIFXDCCA0QCCQCl4WZtbTlavDANBgkqhkiG9w0BAQsFADBwMQswCQYDVQQGEwJV
+UzEPMA0GA1UECAwGT3JlZ29uMREwDwYDVQQHDAhQb3J0bGFuZDEVMBMGA1UECgwM
+Q29tcGFueSBOYW1lMQwwCgYDVQQLDANPcmcxGDAWBgNVBAMMD3d3dy5leGFtcGxl
+LmNvbTAeFw0yMDA1MjAxNzI0MzFaFw0yMTA1MjAxNzI0MzFaMHAxCzAJBgNVBAYT
+AlVTMQ8wDQYDVQQIDAZPcmVnb24xETAPBgNVBAcMCFBvcnRsYW5kMRUwEwYDVQQK
+DAxDb21wYW55IE5hbWUxDDAKBgNVBAsMA09yZzEYMBYGA1UEAwwPd3d3LmV4YW1w
+bGUuY29tMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAuMq5wHW0sDEM
+/Ajy9Iq9k24TWnWAo7pIMUMcYxnlVbkcRxcysi5WjNe2Ruseuxew6r8V8DvAb357
+q3hQxvLqtd3iJ4t075d/BuKRUDix4GP4bykvROC/GwTw2l2oOow+Ot2q3brzqNGc
+wZqL4KKsOK8s3udyNs/A/niD2t1pkV/d4GevVHpnAKOzCb/1s6Qcopnn2of/k0kx
+Xa+atZFTsWiXJXKAG03A0cWRFRnOpfwUWUB68+VRtyRDvDNSrswKtJzMhZMj9cpx
+rz+urMlfg2HKo0id3Afn4HiAtVU9mYMM3cQViXkSIAjU/GDpiPRaYmK7qxHFPYi5
+3x0NDt+NtkC2ayVccmOO3O6vZAT1DVGfnsFoD3knkQ0pdy9MH5JzXm3ppma+yEWF
+FYem0yKgfzETkae9BP1Z6eUAa6H3ZGhfGes7JZ8+dBQI96WVbJhGkI4f8gasYIVe
+B6orzZn/uqfP9/D44ZVPcfzNXZpo69TSmruCC60vZnhC9vq8HqleE2avvk+3eewa
+K6M9c8rSl6f0MLxkHKQ/k0bboR2ZKSx0TshknQkfV52ASORXkDlYud74U/gQ6261
+xPgpH5gC8pSxbH5QXhf/SIZshwHBKZI/9BWWIwF6BGRBHgKYWsHf6lbKbd9Ce19+
+TnKkyDw4pTVS/lljItJR7FjuYfRczzMCAwEAATANBgkqhkiG9w0BAQsFAAOCAgEA
+r6UAa9n4FkiA4ZqugCJEoC5Ehc1X/qdNFkY4EIHc33sqscqVZhHC0MbfNmKuiirk
+XKTR+M3U62IvD8HXpkBMTYMpnvsH4jFuP3SpTFfUuqarueqsawiPAejhjF9829fg
+K1+s1rD/fI3H3UuHWChTXKA4KpnCYr5B1om4ZoCcTVVdZjhO256iM7p/DHze08Eo
+Rdhaj+rgs6NC5vLHWX9bezACeqA3YwJYHRH0zuoCQfRKXkikIjj18wpWNARFhDoQ
+FEhJXIAO/skpuK6Q9Ml1wWuFaqgXtKN1iVzuGi7P8O3bCLexwmqnmsnEZPPpzjoQ
+T8zVIjCH6jBX533f1B745IrGNzMSr6YC/9RT3DrPoNT9pCAozSoZxldqIegxLgWG
+zBT6jj/fR92E5kJh8Hy3koeXGkyAkcHB0PH8yyFtYIlP0stENkG/fDCLuMUqf6GZ
+P/oSyJH1Ro/qV6kwc1XYDB+6NGC8Xd1JQKZD49c/GZYpo77ZYKQtCoTrMuPKSG5/
+jP7OTrdylTj+V4r7jYLLpvWCUe0ON0QPKClo+15tXATWep6PFk0U5W+efvavG70e
+Fu9GKMOkTgv5F/ngzDgXKo7T6poRDZAgolUAq2kwDUp42AVx/7UqmOdp0yUTNmJG
+A70UwPLAvWk5vX1IMpaEFjBd3LqWLeSmbKZ03zr1jnA=`,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, _, _, err := metadata.GetEntityIDCertificateAndRedirectURL()
+	assert.Equal(t, saml.ErrNoRedirectBinding, err)
 }
