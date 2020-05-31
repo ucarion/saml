@@ -249,7 +249,7 @@ var getAccountTemplate = template.Must(template.New("get_account").Parse(`
 	<body>
 		<h1>SAML TodoApp</h1>
 
-		<p>You are logged in as: {{ .CurrentUser.ID }}</p>
+		<p>You are logged in as: {{ .CurrentUser.DisplayName }} (id = {{ .CurrentUser.ID }}) </p>
 
 		<h2>SAML Configuration</h2>
 
@@ -265,7 +265,7 @@ var getAccountTemplate = template.Must(template.New("get_account").Parse(`
 				<td><code>{{ .SAMLACS }}</code></td>
 			</tr>
 			<tr>
-				<td>SAML Recipient Entity ID</td>
+				<td>SAML Recipient ID</td>
 				<td><code>{{ .SAMLRecipientID }}</code></td>
 			</tr>
 		</table>
