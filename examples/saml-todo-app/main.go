@@ -182,30 +182,10 @@ func (s *store) createTodo(ctx context.Context, t todo) error {
 
 var indexTemplate = template.Must(template.New("index").Parse(`
 	<h1>
-		TodoApp, Enterprise Edition
+		SAML TodoApp
 	</h1>
 
-	<p>
-		Obviously, this is a pretty ugly application. This app is meant to make it
-		clearer how to integrate SAML into an application. It's not meant to be a
-		production-ready system.
-	</p>
-
-	<form action="/login" method="post">
-		<label>
-			User ID (not username)
-
-			<input type="text" name="id" />
-		</label>
-
-		<label>
-			Password
-
-			<input type="password" name="password" />
-		</label>
-
-		<button>Log into an existing user</button>
-	</form>
+	<h2>Sign up</h2>
 
 	<form action="/accounts" method="post">
 		<label>
@@ -222,119 +202,181 @@ var indexTemplate = template.Must(template.New("index").Parse(`
 
 		<button>Create a new account</button>
 	</form>
-`))
 
-type getAccountData struct {
-	ID                string
-	SAMLACS           string
-	SAMLDestinationID string
-	SAMLIssuerID      string
-	SAMLIssuerX509    string
-	SAMLRedirectURL   string
-}
+	<h2>Log in</h2>
 
-var getAccountTemplate = template.Must(template.New("get_account").Parse(`
-	<p>Account ID {{ .ID }}</p>
-
-	<a href="/accounts/{{ .ID }}/saml/initiate">Initiate SAML Login Flow</a>
-
-	<p>SAML Connnection Details</p>
-
-	<hr />
-
-	<p><b>Data you need to put into your Identity Provider</b></p>
-
-	<p>
-		SAML ACS ("Assertion Consumer Service") URL: <code>{{ .SAMLACS }}</code>
-	</p>
-
-	<p>
-		SAML Destination Entity ID: <code>{{ .SAMLDestinationID }}</code>
-	</p>
-
-	<hr />
-
-	<p><b>Data from your Identity Provider you need to give us</b></p>
-
-	<p>
-		SAML Issuer Entity ID: <code>{{ .SAMLIssuerID }}</code>
-	</p>
-
-	<p>
-		SAML Issuer x509 Certificate:
-
-		<code><pre>{{ .SAMLIssuerX509 }}</pre></code>
-	</p>
-
-	<p>
-		SAML SP-Initiated Redirect URL: <code>{{ .SAMLRedirectURL }}</code>
-	</p>
-
-	<form action="{{ .ID }}/metadata" method="post" enctype="multipart/form-data">
-		<input type="file" accept=".xml" name="metadata" />
-
-		<button>Upload Identity Provider SAML Metadata</button>
-	</form>
-`))
-
-var listUsersTemplate = template.Must(template.New("list_users").Parse(`
-	There are {{ len . }} users:
-
-	<ul>
-		{{ range . }}
-			<li>
-				{{ .DisplayName }} (id = {{ .ID }})
-			</li>
-		{{ end }}
-	</ul>
-
-	<form method="post">
+	<form action="/login" method="post">
 		<label>
-			Display Name
-			<input type="text" name="display_name" />
+			User ID (not username)
+
+			<input type="text" name="id" />
 		</label>
 
 		<label>
 			Password
+
 			<input type="password" name="password" />
 		</label>
 
-		<button>Create a user</button>
+		<button>Log into an existing user</button>
 	</form>
 `))
+
+type getAccountData struct {
+	ID              string
+	CurrentUser     user
+	SAMLACS         string
+	SAMLRecipientID string
+	SAMLIssuerID    string
+	SAMLIssuerX509  string
+	SAMLRedirectURL string
+	Users           []user
+	Todos           []todoWithAuthor
+}
 
 type todoWithAuthor struct {
 	Todo todo
 	User user
 }
 
-var listTodosTemplate = template.Must(template.New("list_todos").Parse(`
-	There are {{ len . }} todos:
+var getAccountTemplate = template.Must(template.New("get_account").Parse(`
+	<!DOCTYPE html>
+	<head>
+		<style>
+		table, th, td { border: 1px solid black; }
+		</style>
+	</head>
+	<body>
+		<h1>SAML TodoApp</h1>
 
-	<ul>
-		{{ range . }}
-			<li>
-				{{ .User.DisplayName }}: {{ .Todo.Body }} (id = {{ .Todo.ID }})
-			</li>
-		{{ end }}
-	</ul>
+		<p>You are logged in as: {{ .CurrentUser.ID }}</p>
 
-	<form method="post">
-		<label>
-			Body
-			<input type="text" name="body" />
-		</label>
+		<h2>SAML Configuration</h2>
 
-		<button>Create a todo</button>
-	</form>
+		<a href="/accounts/{{ .ID }}/saml/initiate">Initiate SAML Login Flow</a>
+
+		<table>
+			<caption>
+				Data you need to put into your Identity Provider
+			</caption>
+
+			<tr>
+				<td>SAML Assertion Consumer Service ("ACS") URL</td>
+				<td><code>{{ .SAMLACS }}</code></td>
+			</tr>
+			<tr>
+				<td>SAML Recipient Entity ID</td>
+				<td><code>{{ .SAMLRecipientID }}</code></td>
+			</tr>
+		</table>
+
+		<table>
+			<caption>
+				Data from your Identity Provider you need to give us
+			</caption>
+
+			<tr>
+				<td>SAML Issuer Entity ID</td>
+				<td><code>{{ .SAMLIssuerID }}</code></td>
+			</tr>
+
+			<tr>
+				<td>SAML Issuer x509 Certificate</td>
+				<td><code><pre>{{ .SAMLIssuerX509 }}</pre></code></td>
+			</tr>
+
+			<tr>
+				<td>SAML Redirect URL (aka "HTTP-Redirect Binding URL")</td>
+				<td><code><pre>{{ .SAMLRedirectURL }}</pre></code></td>
+			</tr>
+		</table>
+
+		<form action="/accounts/{{ .ID }}/metadata" method="post" enctype="multipart/form-data">
+			<input type="file" accept=".xml" name="metadata" />
+			<button>Upload Identity Provider SAML Metadata</button>
+		</form>
+
+		<h2>Users</h2>
+
+		<p>There are {{ len .Users }} users:</p>
+
+		<ul>
+			{{ range .Users }}
+				<li>
+					{{ .DisplayName }} (id = {{ .ID }})
+				</li>
+			{{ end }}
+		</ul>
+
+		<form action="/accounts/{{ .ID }}/users" method="post">
+			<label>
+				Display Name
+				<input type="text" name="display_name" />
+			</label>
+
+			<label>
+				Password
+				<input type="password" name="password" />
+			</label>
+
+			<button>Create a user</button>
+		</form>
+
+		<h2>Todos</h2>
+
+		There are {{ len .Todos }} todos:
+
+		<ul>
+			{{ range .Todos }}
+				<li>
+					{{ .User.DisplayName }}: {{ .Todo.Body }} (id = {{ .Todo.ID }})
+				</li>
+			{{ end }}
+		</ul>
+
+		<form action="/accounts/{{ .ID }}/todos" method="post">
+			<label>
+				Body
+				<input type="text" name="body" />
+			</label>
+
+			<button>Create a todo</button>
+		</form>
+	</body>
 `))
 
-func authorize(s *store, w http.ResponseWriter, r *http.Request, accountID string) (user, error) {
-	fmt.Println(r.Cookies())
+func with500(f func(w http.ResponseWriter, r *http.Request, p httprouter.Params) error) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		if err := f(w, r, p); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "internal server error: %s", err.Error())
+		}
+	}
+}
 
+func issueSession(ctx context.Context, s *store, w http.ResponseWriter, u user) error {
+	sess := session{ID: uuid.New(), UserID: u.ID, ExpiresAt: time.Now().Add(time.Hour * 24)}
+	if err := s.createSession(ctx, sess); err != nil {
+		return err
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:    "session_token",
+		Path:    "/",
+		Expires: sess.ExpiresAt,
+		Value:   sess.ID.String(),
+	})
+
+	return nil
+}
+
+var errUnauthorized = errors.New("unauthorized")
+
+func authorize(s *store, w http.ResponseWriter, r *http.Request, accountID string) (user, error) {
 	sessionCookie, err := r.Cookie("session_token")
 	if err != nil {
-		return user{}, err
+		w.WriteHeader(http.StatusUnauthorized)
+		return user{}, errUnauthorized
 	}
 
 	sessionID, err := uuid.Parse(sessionCookie.Value)
@@ -353,7 +395,8 @@ func authorize(s *store, w http.ResponseWriter, r *http.Request, accountID strin
 	}
 
 	if u.AccountID.String() != accountID {
-		return user{}, errors.New("unauthorized")
+		w.WriteHeader(http.StatusForbidden)
+		return user{}, errUnauthorized
 	}
 
 	return u, nil
@@ -373,108 +416,74 @@ func main() {
 		indexTemplate.Execute(w, nil)
 	})
 
-	router.POST("/accounts", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		if err := r.ParseForm(); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
-		}
-
+	router.POST("/accounts", with500(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
 		displayName := r.FormValue("root_display_name")
 		password := r.FormValue("root_password")
 
 		a := account{ID: uuid.New()}
 		if err := store.createAccount(r.Context(), a); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		u := user{ID: uuid.New(), AccountID: a.ID, DisplayName: displayName, PasswordHash: passwordHash}
 		if err := store.createUser(r.Context(), u); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
-		s := session{ID: uuid.New(), UserID: u.ID, ExpiresAt: time.Now().Add(time.Hour * 24)}
-		if err := store.createSession(r.Context(), s); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+		if err := issueSession(r.Context(), &store, w, u); err != nil {
+			return err
 		}
 
-		http.SetCookie(w, &http.Cookie{
-			Name:    "session_token",
-			Path:    "/",
-			Expires: s.ExpiresAt,
-			Value:   s.ID.String(),
-		})
+		http.Redirect(w, r, fmt.Sprintf("/accounts/%s", a.ID.String()), http.StatusFound)
+		return nil
+	}))
 
-		http.Redirect(w, r, fmt.Sprintf("/accounts/%s/todos", a.ID.String()), http.StatusFound)
-	})
-
-	router.POST("/login", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		if err := r.ParseForm(); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
-		}
-
+	router.POST("/login", with500(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
 		userID := r.FormValue("id")
 		password := r.FormValue("password")
 
 		userUUID, err := uuid.Parse(userID)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		user, err := store.getUser(r.Context(), userUUID)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		if err := bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(password)); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
-		s := session{ID: uuid.New(), UserID: userUUID, ExpiresAt: time.Now().Add(time.Hour * 24)}
-		if err := store.createSession(r.Context(), s); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+		if err := issueSession(r.Context(), &store, w, user); err != nil {
+			return err
 		}
 
-		http.SetCookie(w, &http.Cookie{
-			Name:    "session_token",
-			Path:    "/",
-			Expires: s.ExpiresAt,
-			Value:   s.ID.String(),
-		})
+		http.Redirect(w, r, fmt.Sprintf("/accounts/%s", user.AccountID.String()), http.StatusFound)
+		return nil
+	}))
 
-		http.Redirect(w, r, fmt.Sprintf("/accounts/%s/todos", user.AccountID.String()), http.StatusFound)
-	})
-
-	router.GET("/accounts/:account_id", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	router.GET("/accounts/:account_id", with500(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
 		accountID := p.ByName("account_id")
-		if _, err := authorize(&store, w, r, accountID); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+		currentUser, err := authorize(&store, w, r, accountID)
+		if err != nil {
+			return nil
 		}
 
 		accountUUID, err := uuid.Parse(accountID)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		account, err := store.getAccount(r.Context(), accountUUID)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		issuer := ""
@@ -495,56 +504,69 @@ func main() {
 			redirectURL = *account.SAMLRedirectURL
 		}
 
+		todos, err := store.listTodos(r.Context(), accountUUID)
+		if err != nil {
+			return err
+		}
+
+		users, err := store.listUsers(r.Context(), accountUUID)
+		if err != nil {
+			return err
+		}
+
+		todosWithAuthors := []todoWithAuthor{}
+		for _, todo := range todos {
+			for _, user := range users {
+				if user.ID == todo.AuthorID {
+					todosWithAuthors = append(todosWithAuthors, todoWithAuthor{Todo: todo, User: user})
+				}
+			}
+		}
+
 		w.Header().Add("content-type", "text/html")
 		getAccountTemplate.Execute(w, getAccountData{
-			ID:                accountID,
-			SAMLACS:           fmt.Sprintf("http://localhost:8080/accounts/%s/saml/acs", accountID),
-			SAMLDestinationID: fmt.Sprintf("http://localhost:8080/accounts/%s/saml", accountID),
-			SAMLIssuerID:      issuer,
-			SAMLIssuerX509:    issuerX509,
-			SAMLRedirectURL:   redirectURL,
+			ID:              accountID,
+			CurrentUser:     currentUser,
+			SAMLACS:         fmt.Sprintf("http://localhost:8080/accounts/%s/saml/acs", accountID),
+			SAMLRecipientID: fmt.Sprintf("http://localhost:8080/accounts/%s/saml", accountID),
+			SAMLIssuerID:    issuer,
+			SAMLIssuerX509:  issuerX509,
+			SAMLRedirectURL: redirectURL,
+			Users:           users,
+			Todos:           todosWithAuthors,
 		})
-	})
 
-	router.POST("/accounts/:account_id/metadata", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		return nil
+	}))
+
+	router.POST("/accounts/:account_id/metadata", with500(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
 		accountID := p.ByName("account_id")
 		if _, err := authorize(&store, w, r, accountID); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return nil
 		}
 
 		accountUUID, err := uuid.Parse(accountID)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
-		}
-
-		if err := r.ParseMultipartForm(16 * 1024); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		file, _, err := r.FormFile("metadata")
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		defer file.Close()
 		var metadata saml.EntityDescriptor
 		if err := xml.NewDecoder(file).Decode(&metadata); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		entityID, cert, redirectURL, err := metadata.GetEntityIDCertificateAndRedirectURL()
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		samlRedirectURL := redirectURL.String()
-
 		store.updateAccount(r.Context(), account{
 			ID:              accountUUID,
 			SAMLIssuer:      &entityID,
@@ -553,9 +575,10 @@ func main() {
 		})
 
 		http.Redirect(w, r, fmt.Sprintf("/accounts/%s", accountID), http.StatusFound)
-	})
+		return nil
+	}))
 
-	router.GET("/accounts/:account_id/saml/initiate", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	router.GET("/accounts/:account_id/saml/initiate", with500(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
 		// This endpoint is intentionally not checking for authentication /
 		// authorization. Think of this endpoint as a customizable login page, where
 		// we redirect the user to a SAML identity provider of the account's
@@ -564,57 +587,68 @@ func main() {
 
 		accountUUID, err := uuid.Parse(accountID)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		account, err := store.getAccount(r.Context(), accountUUID)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		http.Redirect(w, r, *account.SAMLRedirectURL, http.StatusFound)
-	})
+		return nil
+	}))
 
-	router.POST("/accounts/:account_id/saml/acs", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	router.POST("/accounts/:account_id/saml/acs", with500(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
 		// This is the endpoint that users get redirected to from /saml/initiate
 		// above, or when log into our app directly from their Identity Provider.
 		accountID := p.ByName("account_id")
 
 		accountUUID, err := uuid.Parse(accountID)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		account, err := store.getAccount(r.Context(), accountUUID)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		cert, err := x509.ParseCertificate(account.SAMLX509)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
+		// This is the destination ID we expect to see in the SAML assertion. We
+		// verify this to make sure that this SAML assertion is meant for us, and
+		// not some other SAML application in the identity provider.
 		expectedDestinationID := fmt.Sprintf("http://localhost:8080/accounts/%s/saml", accountID)
+
+		// Get the raw SAML response, and verify it.
 		rawSAMLResponse := r.FormValue(saml.ParamSAMLResponse)
 		samlResponse, err := saml.Verify(rawSAMLResponse, *account.SAMLIssuer, cert, expectedDestinationID, time.Now())
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
+		// samlUserID will contain the user ID from the identity provider.
+		//
+		// If a user with that saml_id already exists in our database, we'll log the
+		// user in as them. If no such user already exists, we'll create one first.
 		samlUserID := samlResponse.Assertion.Subject.NameID.Value
 		existingUser, err := store.getUserBySAMLID(r.Context(), accountUUID, samlUserID)
 
+		// loginUser will contain the user we should create a session for.
 		var loginUser user
 		if err == nil {
+			// A user with the given saml_id in this account already exists. Log into
+			// that user.
 			loginUser = existingUser
 		} else if err == sql.ErrNoRows {
+			// No such user already exists. Create one now.
+			//
+			// This practice of creating a user like this is often called
+			// "just-in-time" provisioning.
 			provisionedUser := user{
 				AccountID:   accountUUID,
 				ID:          uuid.New(),
@@ -622,74 +656,32 @@ func main() {
 				DisplayName: samlUserID,
 			}
 
-			err := store.createUser(r.Context(), provisionedUser)
-
-			if err != nil {
-				fmt.Fprintf(w, err.Error())
-				return
+			if err := store.createUser(r.Context(), provisionedUser); err != nil {
+				return err
 			}
 
 			loginUser = provisionedUser
 		} else {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
-		s := session{ID: uuid.New(), UserID: loginUser.ID, ExpiresAt: time.Now().Add(time.Hour * 24)}
-		if err := store.createSession(r.Context(), s); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+		if err := issueSession(r.Context(), &store, w, loginUser); err != nil {
+			return err
 		}
 
-		http.SetCookie(w, &http.Cookie{
-			Name:    "session_token",
-			Path:    "/",
-			Expires: s.ExpiresAt,
-			Value:   s.ID.String(),
-		})
+		http.Redirect(w, r, fmt.Sprintf("/accounts/%s", accountID), http.StatusFound)
+		return nil
+	}))
 
-		http.Redirect(w, r, fmt.Sprintf("/accounts/%s/todos", accountID), http.StatusFound)
-	})
-
-	router.GET("/accounts/:account_id/users", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	router.POST("/accounts/:account_id/users", with500(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
 		accountID := p.ByName("account_id")
 		if _, err := authorize(&store, w, r, accountID); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		accountUUID, err := uuid.Parse(accountID)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
-		}
-
-		users, err := store.listUsers(r.Context(), accountUUID)
-		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
-		}
-
-		w.Header().Add("content-type", "text/html")
-		listUsersTemplate.Execute(w, users)
-	})
-
-	router.POST("/accounts/:account_id/users", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		accountID := p.ByName("account_id")
-		if _, err := authorize(&store, w, r, accountID); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
-		}
-
-		accountUUID, err := uuid.Parse(accountID)
-		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
-		}
-
-		if err := r.ParseForm(); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		displayName := r.FormValue("display_name")
@@ -697,91 +689,42 @@ func main() {
 
 		passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
-		err = store.createUser(r.Context(), user{
+		if err := store.createUser(r.Context(), user{
 			AccountID:    accountUUID,
 			ID:           uuid.New(),
 			DisplayName:  displayName,
 			PasswordHash: passwordHash,
-		})
-
-		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+		}); err != nil {
+			return err
 		}
 
-		http.Redirect(w, r, "users", http.StatusFound)
-	})
+		http.Redirect(w, r, fmt.Sprintf("/accounts/%s", accountID), http.StatusFound)
+		return nil
+	}))
 
-	router.GET("/accounts/:account_id/todos", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		accountID := p.ByName("account_id")
-		if _, err := authorize(&store, w, r, accountID); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
-		}
-
-		accountUUID, err := uuid.Parse(accountID)
-		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
-		}
-
-		todos, err := store.listTodos(r.Context(), accountUUID)
-		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
-		}
-
-		users, err := store.listUsers(r.Context(), accountUUID)
-		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
-		}
-
-		templateData := []todoWithAuthor{}
-		for _, todo := range todos {
-			for _, user := range users {
-				if user.ID == todo.AuthorID {
-					templateData = append(templateData, todoWithAuthor{Todo: todo, User: user})
-				}
-			}
-		}
-
-		w.Header().Add("content-type", "text/html")
-		listTodosTemplate.Execute(w, templateData)
-	})
-
-	router.POST("/accounts/:account_id/todos", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	router.POST("/accounts/:account_id/todos", with500(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
 		accountID := p.ByName("account_id")
 		author, err := authorize(&store, w, r, accountID)
 		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
-		}
-
-		if err := r.ParseForm(); err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+			return err
 		}
 
 		body := r.FormValue("body")
 
-		err = store.createTodo(r.Context(), todo{
+		if err := store.createTodo(r.Context(), todo{
 			ID:       uuid.New(),
 			AuthorID: author.ID,
 			Body:     body,
-		})
-
-		if err != nil {
-			fmt.Fprintf(w, err.Error())
-			return
+		}); err != nil {
+			return err
 		}
 
-		http.Redirect(w, r, "todos", http.StatusFound)
-	})
+		http.Redirect(w, r, fmt.Sprintf("/accounts/%s", accountID), http.StatusFound)
+		return nil
+	}))
 
 	if err := http.ListenAndServe("localhost:8080", router); err != nil {
 		panic(err)
