@@ -172,7 +172,6 @@ A70UwPLAvWk5vX1IMpaEFjBd3LqWLeSmbKZ03zr1jnA=
 						},
 						SubjectConfirmation: saml.SubjectConfirmation{
 							XMLName: xml.Name{Space: "urn:oasis:names:tc:SAML:2.0:assertion", Local: "SubjectConfirmation"},
-							Method:  "method",
 							SubjectConfirmationData: saml.SubjectConfirmationData{
 								XMLName:      xml.Name{Space: "urn:oasis:names:tc:SAML:2.0:assertion", Local: "SubjectConfirmationData"},
 								NotOnOrAfter: now.Add(time.Minute),
