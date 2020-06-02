@@ -96,8 +96,8 @@ Here's a suggested approach you can take to trying out this example.
      Do whatever you like on the "Feedback" page. It doesn't matter. Click
      "Finish".
 
-1. Next we need to set up SAML from the Service Provider end. In this case,
-   TodoApp is the service provider.
+1. Next we need to set up SAML from the Service Provider end. In this case, the
+   demo app is the service provider.
 
    * If you're using OneLogin, click on the "More Actions" dropdown at the top
      right of the edit page for the OneLogin app you just created. Click on the
