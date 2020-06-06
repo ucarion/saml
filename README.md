@@ -184,9 +184,9 @@ You should also be aware of this important bit of security context:
 
 * **An Identity Provider can put *anything* they like in a SAML assertion.**
   There is no guarantee that Identity Providers won't try to send you nefarious
-  SAML assertions. For example, an identity provider is allowed to claim they
-  have a user with the email steve.jobs@apple.com, no verification required.
-  There is no global SAML police.
+  SAML assertions. For example, an IdP is allowed to claim they have a user with
+  the email steve.jobs@apple.com, no verification required. There is no global
+  SAML police.
 
   If you don't keep this in mind, you might accidentally introduce
   vulnerabilities in your SAML implementation. For instance, don't solely rely
