@@ -120,6 +120,10 @@ http.HandleFunc("/setup", func(w http.ResponseWriter, r *http.Request) {
 > This section gives guidance on how you should consider integrating SAML logins
 > into your existing application. It assumes you are building something like a
 > B2B SaaS product, and want to add Single Sign-On functionality using SAML.
+>
+> If you want to see a working example application built on top of this package,
+> check out [`examples/saml-todo-app`](./examples/saml-todo-app). Its design
+> follows the recommendations in this section.
 
 ### Typical Customer Expectations
 
@@ -178,15 +182,23 @@ In particular, what this means for you is:
 
 You should also be aware of this important bit of security context:
 
-* **An Identity Provider can put *anything* they like in a SAML assertion.** An
-  identity provider is allowed to put steve.jobs@apple.com as a user in their
-  IdP, no email verification required. While you should let Identity Providers
-  control the users in the account they are configured for, but you should not
-  allow Identity Providers to touch accounts they aren't in control of.
+* **An Identity Provider can put *anything* they like in a SAML assertion.**
+  There is no guarantee that Identity Providers won't put fake users in their
+  Identity Providers. For example, an identity provider is allowed to put
+  steve.jobs@apple.com as a user in their IdP, no email verification required.
+  There is no global SAML police.
 
-  For example, if you have two customers called AliceInc and EvilCorp, you
-  should make sure that EvilCorp can't log into AliceInc just because they added
-  alice@aliceinc.com to their corporate IdP.
+  If you don't keep this in mind, you might accidentally introduce
+  vulnerabilities in your SAML implementation. For instance, if you rely on an
+  `email` attribute in SAML logins to decide what user to log someone in as,
+  then an attacker could log in as anyone they like just by adding a phony user
+  to their IdP with the right email, and then sending you a SAML login with that
+  email.
+
+  What this means for you is: trust a SAML provider *only* within the context of
+  the account that has established a trust relationship with a SAML provider.
+  What Company A's Identity Provider says should not have *any* bearing on what
+  they can do with respect to Company B's resources in your product.
 
 ### A Playbook for Introducing SAML
 
