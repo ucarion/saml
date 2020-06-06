@@ -15,19 +15,20 @@ import (
 // ParamSAMLResponse is the name of the HTTP POST parameter where SAML puts
 // responses.
 //
-// Usually, you want to pass ParamSAMLResponse to `r.FormValue` when writing
-// HTTP handlers that are responding to SAML logins.
+// Usually, you want to pass ParamSAMLResponse to r.FormValue when writing HTTP
+// handlers that are responding to SAML logins.
 const ParamSAMLResponse = "SAMLResponse"
 
 // ParamRelayState is the name of the HTTP POST parameter where SAML puts relay
 // states. It's also the name of the URL query parameter you should put your
 // relay state in when initiating the SAML flow.
 //
-// Usually, you want to pass ParamRelayState to `r.FormValue` when writing HTTP
+// Usually, you want to pass ParamRelayState to r.FormValue when writing HTTP
 // handlers that are responding to SAML logins.
 //
-// Usually, you want to use ParamRelayState as the URL parameter "key" when
-// writing HTTP handlers that are initiating SAML flows.
+// Usually, you want to use ParamRelayState as the URL parameter name when
+// writing HTTP handlers that are initiating SAML flows. The URL parameter's
+// value should be the state you want to relay through SAML back to yourself.
 const ParamRelayState = "RelayState"
 
 // ErrResponseNotSigned indicates that the SAML response was not signed.
@@ -59,8 +60,9 @@ var ErrInvalidRecipient = errors.New("saml: invalid recipient")
 
 // Verify parses and verifies a SAML response.
 //
-// samlResponse should be the HTTP POST body parameter. Consider using
-// ParamSAMLResponse to fetch this.
+// samlResponse should be the HTTP POST body parameter of a SAML response. For
+// valid SAML logins, it will contain base64-encoded XML. Consider using
+// ParamSAMLResponse to fetch samlResponse from an HTTP request.
 //
 // issuer is the expected issuer of the SAML assertion. If samlResponse was
 // issued by a different entity, Verify returns ErrInvalidIssuer.
