@@ -183,22 +183,22 @@ In particular, what this means for you is:
 You should also be aware of this important bit of security context:
 
 * **An Identity Provider can put *anything* they like in a SAML assertion.**
-  There is no guarantee that Identity Providers won't put fake users in their
-  Identity Providers. For example, an identity provider is allowed to put
-  steve.jobs@apple.com as a user in their IdP, no email verification required.
-  There is no global SAML police.
+  There is no guarantee that Identity Providers won't try to send you nefarious
+  SAML assertions. For example, an IdP is allowed to claim they have a user with
+  the email steve.jobs@apple.com, no verification required. There is no global
+  SAML police.
 
   If you don't keep this in mind, you might accidentally introduce
-  vulnerabilities in your SAML implementation. For instance, if you rely on an
-  `email` attribute in SAML logins to decide what user to log someone in as,
-  then an attacker could log in as anyone they like just by adding a phony user
-  to their IdP with the right email, and then sending you a SAML login with that
-  email.
+  vulnerabilities in your SAML implementation. For instance, don't solely rely
+  on an `email` attribute in SAML logins to decide what user to log someone in
+  as. Otherwise an attacker could log in as anyone they like just by adding a
+  phony user to their IdP with the right email, and then sending you a SAML
+  login with that email.
 
-  What this means for you is: trust a SAML provider *only* within the context of
-  the account that has established a trust relationship with a SAML provider.
+  What this means for you is: trust a SAML login *only* within the context of
+  the account that has established a trust relationship with the associated IdP.
   What Company A's Identity Provider says should not have *any* bearing on what
-  they can do with respect to Company B's resources in your product.
+  they can do with Company B's resources in your product.
 
 ### A Playbook for Introducing SAML
 
